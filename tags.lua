@@ -1,3 +1,23 @@
+local print = function(...)
+	local str = ""
+	for i = 1, select("#", ...) do
+		str = str .. tostring(select(i, ...)) .. " "
+	end
+	ChatFrame1:AddMessage(str)
+end
+
+local ToHex = function(r, g, b)
+	return string.format("|cff%02x%02x%02x", r*255, g*255, b*255)
+end
+
+local siVal = function(val)
+	if val >= 1e4 then
+		return string.format("%.1fk", val / 1e3)
+	else
+		return val
+	end
+end
+
 local f = CreateFrame("Frame")
 f:RegisterEvent("PLAYER_TARGET_CHANGED")
 
@@ -22,26 +42,42 @@ local tags = {
 	["[class]"] = function(u) return UnitClass(u) end,
 	["[name]"] = function(u) return UnitName(u) end,
 	["[race]"] = function(u) return UnitRace(u) end,
+	["[missinghp]"] = function(u) return UnitHealthMax(u) - UnitHealth(u) end,
+	["[missingpp]"] = function(u) return UnitManaMax(u) - UnitMana(u) end,
+	["[smartcurhp]"] = function(u) return siVal(UnitHealthMax(u)) end,
+	["[smartmaxhp]"] = function(u) return siVal(UnitHealth(u)) end,
+	["[smartcurpp]"] = function(u) return siVal(UnitMana(u)) end,
+	["[smartmaxpp]"] = function(u) return siVal(UnitManaMax(u)) end,
 }
 
 local eventsTable = {
 	["[curhp]"] = {"UNIT_HEALTH"},
-	["[perhp]"] = {"UNIT_HEALTH", "UNIT_MAXHEALTH"}
+	["[smartcurhp]"] = {"UNIT_HEALTH"},
+	["[perhp]"] = {"UNIT_HEALTH", "UNIT_MAXHEALTH"},
 	["[maxhp]"] = {"UNIT_MAXHEALTH"},
+	["[smartmaxhp]"] = {"UNIT_MAXHEALTH"},
 	["[curpp]"] = {"UNIT_ENERGY", "UNIT_FOCUS", "UNIT_MANA", "UNIT_RAGE"},
+	["[smartcurpp]"] = {"UNIT_ENERGY", "UNIT_FOCUS", "UNIT_MANA", "UNIT_RAGE"},
 	["[maxpp]"] = {"UNIT_MAXENERGY", "UNIT_MAXFOCUS", "UNIT_MAXMANA", "UNIT_MAXRAGE"},
+	["[smartmaxpp]"] = {"UNIT_MAXENERGY", "UNIT_MAXFOCUS", "UNIT_MAXMANA", "UNIT_MAXRAGE"},
 	["[perpp]"] = {"UNIT_MAXENERGY", "UNIT_MAXFOCUS", "UNIT_MAXMANA", "UNIT_MAXRAGE", "UNIT_ENERGY", "UNIT_FOCUS", "UNIT_MANA", "UNIT_RAGE"},
 	["[level]"] = {"UNIT_LEVEL"},
 	["[name]"] = {"UNIT_NAME_UPDATE"},
+	["[missinghp]"] = {"UNIT_HEALTH", "UNIT_MAXHEALTH"},
+	["[missingmp]"] = {"UNIT_MAXENERGY", "UNIT_MAXFOCUS", "UNIT_MAXMANA", "UNIT_MAXRAGE", "UNIT_ENERGY", "UNIT_FOCUS", "UNIT_MANA", "UNIT_RAGE"},
 }
 
 local colors = setmetatable({
-	["<red>"] = function() return '|cffff0000' end,
-	["<green>"] = function() return "|cff00ff00" end,
-	["<blue>"] = function() return "|cff0000ff" end,
+	["<red>"] = '|cffff0000',
+	["<green>"] = "|cff00ff00",
+	["<blue>"] = "|cff0000ff",
 	["<class>"] = function(unit)
 		local col = RAID_CLASS_COLORS[select(2, UnitClass(unit)) or "WARRIOR"]
-		return string.format("|cff%02x%02x%02x", col.r*255, col.g*255, col.b*255)
+		return ToHex(col.r, col.g, col.b)
+	end,
+	["<hostility>"] = function(unit)
+		local col = UnitReactionColor[UnitReaction(unit, "player")] or { r = 1, g = 1, b = 1}
+		return ToHex(col.r, col.g, col.b)
 	end,
 	["<r>"] = function() return "|r" end,
 }, {
@@ -86,6 +122,8 @@ local function compile(self, str, obj, unit)
 	objUnitLookup[obj] = unit
 	objStrLookup[obj] = str
 
+	-- Have to do this here to find out what events each tag needs and
+	-- register it when needed
 	for tag in str:gmatch("%b[]") do
 		if eventsTable[tag] then
 			for i, event in ipairs(eventsTable[tag]) do
@@ -104,7 +142,6 @@ local function compile(self, str, obj, unit)
 		-- Check each tag to ensure that it actually exists
 		for tag in str:gmatch("%b[]") do
 			assert(tags[tag])
-
 		end
 
 		strHandlers[str] = function(unit)
@@ -129,7 +166,7 @@ local OnEvent = function(self, event, unit)
 	if event == "PLAYER_TARGET_CHANGED" then
 		for obj, str in pairs(objStrLookup) do
 			local unit = objUnitLookup[obj]
-			local handle = compile(str, obj, unit)
+			local handle = compile(nil, str, obj, unit)
 			obj:SetText(handle(unit))
 		end
 		return
@@ -139,7 +176,7 @@ local OnEvent = function(self, event, unit)
 		if objUnitLookup[obj] == unit then
 			-- recompile the string
 			local str = objStrLookup[obj]
-			local handle = compile(str, obj, unit)
+			local handle = compile(nil, str, obj, unit)
 			obj:SetText(handle(unit))
 		end
 	end
@@ -147,4 +184,4 @@ end
 
 f:SetScript("OnEvent", OnEvent)
 
-oUF.Compile = Compile
+oUF.Compile = compile
