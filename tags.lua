@@ -14,7 +14,8 @@ local registry = setmetatable({}, {
 local tags = {
 	["[curhp]"] = function(u) return UnitHealth(u) end,
 	["[maxhp]"] = function(u) return UnitHealthMax(u) end,
-	["[perhp]"] = function(u) return math.floor((UnitHealthMax(u) / UnitHealth(u)) * 100) end,
+	["[perhp]"] = function(u) return math.floor((UnitHealth(u) / UnitHealthMax(u)) * 100) end,
+	["[perpp]"] = function(u) return math.floor((UnitPower(u) / UnitPowerMax(u)) * 100) end,
 	["[curpp]"] = function(u) return UnitMana(u) end,
 	["[maxpp]"] = function(u) return UnitManaMax(u) end,
 	["[level]"] = function(u) return UnitLevel(u) end,
@@ -29,6 +30,7 @@ local eventsTable = {
 	["[maxhp]"] = {"UNIT_MAXHEALTH"},
 	["[curpp]"] = {"UNIT_ENERGY", "UNIT_FOCUS", "UNIT_MANA", "UNIT_RAGE"},
 	["[maxpp]"] = {"UNIT_MAXENERGY", "UNIT_MAXFOCUS", "UNIT_MAXMANA", "UNIT_MAXRAGE"},
+	["[perpp]"] = {"UNIT_MAXENERGY", "UNIT_MAXFOCUS", "UNIT_MAXMANA", "UNIT_MAXRAGE", "UNIT_ENERGY", "UNIT_FOCUS", "UNIT_MANA", "UNIT_RAGE"},
 	["[level]"] = {"UNIT_LEVEL"},
 	["[name]"] = {"UNIT_NAME_UPDATE"},
 }
