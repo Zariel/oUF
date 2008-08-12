@@ -6,6 +6,7 @@
 ## Notes: Unit frame framework. Does nothing by itself.
 
 ouf.lua
+tags.lua
 
 elements\power.lua
 elements\aura.lua
