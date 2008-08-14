@@ -112,36 +112,39 @@ local eventLookup = {}
 local objStrLookup = {}
 -- obj < -- > unit
 local objUnitLookup = {}
+-- event check
+local eventCheck = {}
 
--- Need work around for this, for lookup
-local function compile(self, str, obj, unit)
-	-- Do color substitutions now
-	assert(type(obj) == "table")
-	assert(type(str) == "string")
+local RegisterTag = function(self, str, obj, unit)
+	assert(type(obj) == "table", error("Bad arg #2 object should be a table"))
+	assert(type(str) == "string", error("Bad arg #1 string should be a string"))
 
 	objUnitLookup[obj] = unit
 	objStrLookup[obj] = str
 
 	-- Have to do this here to find out what events each tag needs and
 	-- register it when needed
-	for tag in str:gmatch("%b[]") do
-		if eventsTable[tag] then
-			for i, event in ipairs(eventsTable[tag]) do
-				registry(event)
-				eventLookup[event] = eventLookup[event] or {}
-				-- obj to update when event fires
-				if not eventObj[event][obj] then
-					table.insert(eventLookup[event], obj)
-					eventObj[event][obj] = true
+	if not eventChange[str] then
+		for tag in str:gmatch("%b[]") do
+			if eventsTable[tag] then
+				for i, event in ipairs(eventsTable[tag]) do
+					registry(event)
+					eventLookup[event] = eventLookup[event] or {}
+					-- obj to update when event fires
+					if not eventObj[event][obj] then
+						table.insert(eventLookup[event], obj)
+						eventObj[event][obj] = true
+					end
 				end
 			end
 		end
+		eventCheck[str] = true
 	end
 
 	if not strHandlers[str] then
 		-- Check each tag to ensure that it actually exists
 		for tag in str:gmatch("%b[]") do
-			assert(tags[tag])
+			assert(tags[tag], error("Unknown tag " .. tag))
 		end
 
 		strHandlers[str] = function(unit)
@@ -152,7 +155,7 @@ local function compile(self, str, obj, unit)
 		end
 	end
 
-	return strHandlers[str]
+	obj:SetText(strHandlers[str](unit))
 end
 
 -- Usage:
@@ -166,8 +169,7 @@ local OnEvent = function(self, event, unit)
 	if event == "PLAYER_TARGET_CHANGED" then
 		for obj, str in pairs(objStrLookup) do
 			local unit = objUnitLookup[obj]
-			local handle = compile(nil, str, obj, unit)
-			obj:SetText(handle(unit))
+			RegisterTag(oUF, str, obj, unit)
 		end
 		return
 	end
@@ -176,12 +178,11 @@ local OnEvent = function(self, event, unit)
 		if objUnitLookup[obj] == unit then
 			-- recompile the string
 			local str = objStrLookup[obj]
-			local handle = compile(nil, str, obj, unit)
-			obj:SetText(handle(unit))
+			RegisterTag(oUF, str, obj, unit)
 		end
 	end
 end
 
 f:SetScript("OnEvent", OnEvent)
 
-oUF.Compile = compile
+oUF.RegisterTag = RegisterTag
