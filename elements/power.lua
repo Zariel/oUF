@@ -1,3 +1,27 @@
+--[[
+	Elements handled: .Power
+
+	Shared:
+	 The following settings are listed by priority:
+	 - colorTapping
+	 - colorDisconnected
+	 - colorHappiness
+	 - colorPower
+	 - colorClass
+	 - colorReaction
+	 - colorSmooth - will use smoothGradient instead of the internal gradient if set.
+
+	WotLK only:
+	 This option will only enable for player and pet.
+	 - frequentUpdates - do OnUpdate polling of power data.
+
+	Functions that can be overridden from within a layout:
+	 - :PreUpdatePower(event, unit)
+	 - :OverrideUpdatePower(event, unit, bar, min, max) - Setting this function
+	 will disable the above color settings.
+	 - :PostUpdatePower(event, unit, bar, min, max)
+--]]
+
 local wotlk = select(4, GetBuildInfo()) >= 3e4
 
 local UnitManaMax = UnitManaMax
@@ -87,7 +111,7 @@ oUF.UNIT_MAXRUNIC_POWER = oUF.UNIT_MAXMANA
 
 table.insert(oUF.subTypes, function(self, unit)
 	if(self.Power) then
-		if(self.Power.frequentUpdates and unit == 'player') then
+		if(self.Power.frequentUpdates and (unit == 'player' or unit == 'pet')) then
 			self.Power:SetScript("OnUpdate", OnPowerUpdate)
 		else
 			self:RegisterEvent"UNIT_MANA"

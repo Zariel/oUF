@@ -1,6 +1,24 @@
-local ColorGradient = oUF.ColorGradient
+--[[
+	Elements handled: .Health
 
-local min, max, bar
+	Shared:
+	 The following settings are listed by priority:
+	 - colorTapping
+	 - colorDisconnected
+	 - colorHappiness
+	 - colorClass
+	 - colorReaction
+	 - colorSmooth - will use smoothGradient instead of the internal gradient if set.
+
+	WotLK only:
+	 - frequentUpdates - do OnUpdate polling of health data.
+
+	Functions that can be overridden from within a layout:
+	 - :PreUpdateHealth(event, unit)
+	 - :OverrideUpdateHealth(event, unit, bar, min, max) - Setting this function
+	 will disable the above color settings.
+	 - :PostUpdateHealth(event, unit, bar, min, max)
+--]]
 
 local OnHealthUpdate
 do
@@ -22,8 +40,8 @@ function oUF:UNIT_MAXHEALTH(event, unit)
 	if(self.unit ~= unit) then return end
 	if(self.PreUpdateHealth) then self:PreUpdateHealth(event, unit) end
 
-	min, max = UnitHealth(unit), UnitHealthMax(unit)
-	bar = self.Health
+	local min, max = UnitHealth(unit), UnitHealthMax(unit)
+	local bar = self.Health
 	bar:SetMinMaxValues(0, max)
 	bar:SetValue(min)
 
@@ -43,7 +61,7 @@ function oUF:UNIT_MAXHEALTH(event, unit)
 			t = self.colors.class[class]
 		elseif(bar.colorReaction) then
 			t = self.colors.reaction[UnitReaction(unit, "player")]
-		elseif(bar.colorSmooth) then
+		elseif(bar.colorSmooth and max ~= 0) then
 			r, g, b = self.ColorGradient(min / max, unpack(bar.smoothGradient or self.colors.smooth))
 		end
 
@@ -68,7 +86,7 @@ oUF.UNIT_HEALTH = oUF.UNIT_MAXHEALTH
 
 table.insert(oUF.subTypes, function(self)
 	if(self.Health) then
-		if(self.Health.frequentUpdates) then
+		if(self.Health.frequentUpdates and (self.unit and not self.unit:match'%w+target$') or not self.unit) then
 			self.Health:SetScript('OnUpdate', OnHealthUpdate)
 		else
 			self:RegisterEvent"UNIT_HEALTH"
