@@ -1,3 +1,5 @@
+local wotlk = select(4, GetBuildInfo()) >= 3e4
+
 local print = function(a) ChatFrame1:AddMessage("|cff33ff99oUF:|r "..tostring(a)) end
 local error = function(...) print("|cffff0000Error:|r "..string.format(...)) end
 local dummy = function() end
@@ -39,7 +41,13 @@ for eclass, color in ipairs(UnitReactionColor) do
 	colors.reaction[eclass] = {color.r, color.g, color.b}
 end
 
-if(select(4, GetBuildInfo()) < 3e4) then
+if(wotlk) then
+	for power, color in pairs(PowerBarColor) do
+		if(type(power) == 'string') then
+			colors.power[power] = {color.r, color.g, color.b}
+		end
+	end
+else
 	colors.power = {
 		[0] = { 48/255, 113/255, 191/255}, -- Mana
 		[1] = { 226/255, 45/255, 75/255}, -- Rage
@@ -47,12 +55,6 @@ if(select(4, GetBuildInfo()) < 3e4) then
 		[3] = { 1, 1, 34/255}, -- Energy
 		[4] = { 0, 1, 1} -- Happiness
 	}
-else
-	for power, color in pairs(PowerBarColor) do
-		if(type(power) == 'string') then
-			colors.power[power] = {color.r, color.g, color.b}
-		end
-	end
 end
 
 -- add-on object
@@ -129,6 +131,16 @@ local HandleUnit = function(unit, object)
 		-- Enable our shit
 		object:RegisterEvent"PLAYER_TARGET_CHANGED"
 	elseif(unit == "focus") then
+		if(wotlk) then
+			FocusFrame:UnregisterAllEvents()
+			FocusFrame.Show = dummy
+			FocusFrame:Hide()
+
+			FocusFrameHealthBar:UnregisterAllEvents()
+			FocusFrameManaBar:UnregisterAllEvents()
+			FocusFrameSpellBar:UnregisterAllEvents()
+		end
+
 		object:RegisterEvent"PLAYER_FOCUS_CHANGED"
 	elseif(unit == "mouseover") then
 		object:RegisterEvent"UPDATE_MOUSEOVER_UNIT"

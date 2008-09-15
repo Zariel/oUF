@@ -10,6 +10,9 @@
 	 - colorReaction
 	 - colorSmooth - will use smoothGradient instead of the internal gradient if set.
 
+	Background:
+	 - multiplier - number used to manipulate the power background. (default: 1)
+
 	WotLK only:
 	 - frequentUpdates - do OnUpdate polling of health data.
 
@@ -69,11 +72,13 @@ function oUF:UNIT_MAXHEALTH(event, unit)
 			r, g, b = t[1], t[2], t[3]
 		end
 
-		if(r and g and b) then
+		if(b) then
 			bar:SetStatusBarColor(r, g, b)
 
-			if(bar.bg) then
-				bar.bg:SetVertexColor(r, g, b)
+			local bg = bar.bg
+			if(bg) then
+				local mu = bg.multiplier or 1
+				bg:SetVertexColor(r * mu, g * mu, b * mu)
 			end
 		end
 	else
@@ -85,9 +90,10 @@ end
 oUF.UNIT_HEALTH = oUF.UNIT_MAXHEALTH
 
 table.insert(oUF.subTypes, function(self)
-	if(self.Health) then
-		if(self.Health.frequentUpdates and (self.unit and not self.unit:match'%w+target$') or not self.unit) then
-			self.Health:SetScript('OnUpdate', OnHealthUpdate)
+	local health = self.Health
+	if(health) then
+		if(health.frequentUpdates and (self.unit and not self.unit:match'%w+target$') or not self.unit) then
+			health:SetScript('OnUpdate', OnHealthUpdate)
 		else
 			self:RegisterEvent"UNIT_HEALTH"
 		end
@@ -95,6 +101,10 @@ table.insert(oUF.subTypes, function(self)
 		self:RegisterEvent'UNIT_HAPPINESS'
 		-- For tapping.
 		self:RegisterEvent'UNIT_FACTION'
+
+		if(not health:GetStatusBarTexture()) then
+			health:SetStatusBarTexture[[Interface\TargetingFrame\UI-StatusBar]]
+		end
 	end
 end)
 oUF:RegisterSubTypeMapping"UNIT_MAXHEALTH"

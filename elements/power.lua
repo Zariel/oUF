@@ -11,6 +11,9 @@
 	 - colorReaction
 	 - colorSmooth - will use smoothGradient instead of the internal gradient if set.
 
+	Background:
+	 - multiplier - number used to manipulate the power background. (default: 1)
+
 	WotLK only:
 	 This option will only enable for player and pet.
 	 - frequentUpdates - do OnUpdate polling of power data.
@@ -33,13 +36,13 @@ do
 	local UnitMana = UnitMana
 	OnPowerUpdate = function(self)
 		if(self.disconnected) then return end
-		local power = UnitMana('player')
+		local power = UnitMana(self.unit)
 
 		if(power ~= self.min) then
 			self:SetValue(power)
 			self.min = power
 
-			self:GetParent():UNIT_MANA("OnPowerUpdate", 'player')
+			self:GetParent():UNIT_MANA("OnPowerUpdate", self.unit)
 		end
 	end
 end
@@ -52,7 +55,9 @@ function oUF:UNIT_MAXMANA(event, unit)
 	bar = self.Power
 	bar:SetMinMaxValues(0, max)
 	bar:SetValue(min)
+
 	bar.disconnected = not UnitIsConnected(unit)
+	bar.unit = unit
 
 	if(not self.OverrideUpdatePower) then
 		local r, g, b, t
@@ -84,11 +89,13 @@ function oUF:UNIT_MAXMANA(event, unit)
 			r, g, b = t[1], t[2], t[3]
 		end
 
-		if(r and g and b) then
+		if(b) then
 			bar:SetStatusBarColor(r, g, b)
 
-			if(bar.bg) then
-				bar.bg:SetVertexColor(r, g, b)
+			local bg = bar.bg
+			if(bg) then
+				local mu = bg.multiplier or 1
+				bg:SetVertexColor(r * mu, g * mu, b * mu)
 			end
 		end
 	else
@@ -110,9 +117,10 @@ oUF.UNIT_RUNIC_POWER = oUF.UNIT_MAXMANA
 oUF.UNIT_MAXRUNIC_POWER = oUF.UNIT_MAXMANA
 
 table.insert(oUF.subTypes, function(self, unit)
-	if(self.Power) then
-		if(self.Power.frequentUpdates and (unit == 'player' or unit == 'pet')) then
-			self.Power:SetScript("OnUpdate", OnPowerUpdate)
+	local power = self.Power
+	if(power) then
+		if(power.frequentUpdates and (unit == 'player' or unit == 'pet')) then
+			power:SetScript("OnUpdate", OnPowerUpdate)
 		else
 			self:RegisterEvent"UNIT_MANA"
 			self:RegisterEvent"UNIT_RAGE"
@@ -130,6 +138,10 @@ table.insert(oUF.subTypes, function(self, unit)
 		self:RegisterEvent'UNIT_HAPPINESS'
 		-- For tapping.
 		self:RegisterEvent'UNIT_FACTION'
+
+		if(not power:GetStatusBarTexture()) then
+			power:SetStatusBarTexture[[Interface\TargetingFrame\UI-StatusBar]]
+		end
 	end
 end)
-oUF:RegisterSubTypeMapping"UNIT_MANA"
+oUF:RegisterSubTypeMapping"UNIT_MAXMANA"
